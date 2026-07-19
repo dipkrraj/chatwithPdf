@@ -17,7 +17,10 @@ from app.database.database import Base
 from app.core.config import settings
 
 # Use the DATABASE_URL from our settings (reads from .env)
-config.set_main_option("sqlalchemy.url", settings.database_url)
+db_url = settings.database_url or "sqlite:///./app.db"
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+config.set_main_option("sqlalchemy.url", db_url)
 
 target_metadata = Base.metadata
 

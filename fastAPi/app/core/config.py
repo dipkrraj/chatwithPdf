@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
 
     # Database
-    database_url: str = "sqlite:///./app.db"
+    database_url: str = ""
 
     # Auth / JWT
     secret_key: str = "change-me-in-production-use-openssl-rand-hex-32"
