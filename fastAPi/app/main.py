@@ -39,10 +39,13 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting up AI PDF Chat API...")
 
-    # Create all SQLite tables (will be replaced by Alembic in production)
-    import app.models  # noqa: F401 — ensures all models are registered
-    Base.metadata.create_all(bind=engine)
-    logger.info("Database tables ready")
+    # Create database tables automatically only for local SQLite setup
+    # (Production deployment schemas are fully managed by Alembic migrations)
+    from app.database.database import DATABASE_URL
+    if DATABASE_URL.startswith("sqlite"):
+        import app.models  # noqa: F401
+        Base.metadata.create_all(bind=engine)
+        logger.info("Local SQLite database tables initialized")
 
     # Pre-load the embedding model so the first request isn't slow
     try:
