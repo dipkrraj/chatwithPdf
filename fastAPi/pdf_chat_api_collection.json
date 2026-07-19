@@ -1,0 +1,334 @@
+{
+  "info": {
+    "name": "AI PDF Chat API",
+    "description": "Complete API collection for the AI PDF Chat backend.\n\n## Setup\n1. Set the `base_url` variable (default: http://localhost:8000)\n2. Register or login — the `access_token` and `refresh_token` are auto-saved\n3. Upload a PDF and copy its `id` into the `pdf_id` variable\n4. Start chatting!\n\n## Auth Flow\nAll endpoints except register/login require `Authorization: Bearer {{access_token}}`\nThis is auto-injected via the collection-level pre-request script.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base_url", "value": "http://localhost:8000", "type": "string"},
+    {"key": "access_token", "value": "", "type": "string"},
+    {"key": "refresh_token", "value": "", "type": "string"},
+    {"key": "pdf_id", "value": "1", "type": "string"}
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{"key": "token", "value": "{{access_token}}", "type": "string"}]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/",
+            "description": "Verify the API is running. No auth required."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test(\"Status is OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response has status field\", () => pm.expect(pm.response.json().status).to.eql(\"ok\"));"]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/register",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"username\": \"myusername\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "description": "Create a new user account. Returns the created user object."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Registration successful\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"Response has user id\", () => pm.expect(pm.response.json()).to.have.property(\"id\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/login",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "description": "Login and get access + refresh tokens. Tokens are auto-saved to collection variables."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Login successful\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set(\"access_token\", json.access_token);",
+                  "pm.collectionVariables.set(\"refresh_token\", json.refresh_token);",
+                  "console.log(\"Tokens saved!\");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/auth/me",
+            "description": "Get the currently authenticated user's profile. Requires valid access token."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Profile fetched\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has email field\", () => pm.expect(pm.response.json()).to.have.property(\"email\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/refresh",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "description": "Exchange a refresh token for a new access + refresh token pair (token rotation)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Token refreshed\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set(\"access_token\", json.access_token);",
+                  "pm.collectionVariables.set(\"refresh_token\", json.refresh_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/auth/logout",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "description": "Revoke the refresh token. The user is effectively logged out."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Logout successful\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set(\"access_token\", \"\");",
+                  "pm.collectionVariables.set(\"refresh_token\", \"\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "PDFs",
+      "item": [
+        {
+          "name": "Upload PDF",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/pdfs/upload",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {"key": "file", "type": "file", "src": "", "description": "Select a .pdf file from your machine"}
+              ]
+            },
+            "description": "Upload a PDF. Returns 202 Accepted — processing happens in the background. Poll GET /pdfs/{id} to check status."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Upload accepted\", () => pm.response.to.have.status(202));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set(\"pdf_id\", json.id);",
+                  "console.log(\"PDF ID saved:\", json.id, \"| Status:\", json.status);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List My PDFs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/pdfs/?skip=0&limit=10",
+              "query": [
+                {"key": "skip", "value": "0"},
+                {"key": "limit", "value": "10"}
+              ]
+            },
+            "description": "Paginated list of PDFs uploaded by the authenticated user."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"List returned\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has items array\", () => pm.expect(pm.response.json()).to.have.property(\"items\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get PDF Status",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/v1/pdfs/{{pdf_id}}",
+            "description": "Get a PDF's details and current processing status (pending/processing/done/failed)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"PDF found\", () => pm.response.to.have.status(200));",
+                  "const s = pm.response.json().status;",
+                  "console.log(\"Processing status:\", s);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete PDF",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/v1/pdfs/{{pdf_id}}",
+            "description": "Delete a PDF and all its associated vector chunks from Chroma."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test(\"Deleted\", () => pm.response.to.have.status(204));"]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Ask Question (RAG)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/v1/chat/",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pdf_id\": {{pdf_id}},\n  \"question\": \"What is the main topic of this document?\"\n}"
+            },
+            "description": "Ask a question about an uploaded PDF. The system retrieves relevant chunks from Chroma and uses Groq LLM to generate an answer with source page references."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Answer received\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"Role is assistant\", () => pm.expect(json.role).to.eql(\"assistant\"));",
+                  "pm.test(\"Content is not empty\", () => pm.expect(json.content.length).to.be.above(0));",
+                  "console.log(\"Answer:\", json.content);",
+                  "if (json.source_chunks) console.log(\"Sources:\", json.source_chunks.map(s => 'Page ' + s.page_number).join(', '));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Chat History",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/chat/history/{{pdf_id}}?skip=0&limit=20",
+              "query": [
+                {"key": "skip", "value": "0"},
+                {"key": "limit", "value": "20"}
+              ]
+            },
+            "description": "Get paginated chat history for a specific PDF. Ordered chronologically."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"History fetched\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Has items\", () => pm.expect(pm.response.json()).to.have.property(\"items\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Clear Chat History",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/v1/chat/history/{{pdf_id}}",
+            "description": "Delete all chat messages for a specific PDF."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": ["pm.test(\"History cleared\", () => pm.response.to.have.status(200));"]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
