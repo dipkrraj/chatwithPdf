@@ -18,9 +18,10 @@ class Settings(BaseSettings):
     # Google OAuth
     google_client_id: str = ""
 
-    # Groq LLM
+    # Groq LLM & Embeddings
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
 
     # Chroma Cloud
     chroma_api_key: str = ""

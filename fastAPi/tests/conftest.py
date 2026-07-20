@@ -63,7 +63,7 @@ def client(db):
     # Mock embedding service to avoid loading the model in tests
     with patch("app.services.embedding_service.load_model") as mock_model:
         mock_model.return_value = MagicMock(
-            encode=MagicMock(return_value=[[0.1] * 768])
+            encode=MagicMock(return_value=[[0.1] * 384])
         )
         with patch("app.services.chroma_service.get_chroma_client") as mock_chroma:
             mock_collection = MagicMock()

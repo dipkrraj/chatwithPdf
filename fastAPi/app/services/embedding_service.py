@@ -8,8 +8,9 @@ logger = logging.getLogger("app")
 
 # BGE models require a special query prefix for best retrieval performance
 BGE_QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
-MODEL_NAME = "BAAI/bge-base-en-v1.5"
+from app.core.config import settings
 
+MODEL_NAME = settings.embedding_model
 _model: Optional[SentenceTransformer] = None
 
 
@@ -46,7 +47,7 @@ class EmbeddingService:
         This significantly improves retrieval quality for BGE models.
         """
         model = load_model()
-        prefixed = BGE_QUERY_PREFIX + query
+        prefixed = BGE_QUERY_PREFIX + query if MODEL_NAME.lower().startswith("baai/bge") else query
         vector = model.encode([prefixed], convert_to_numpy=True)
         return self._normalize(vector)[0]
 
