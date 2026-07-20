@@ -47,22 +47,7 @@ async def lifespan(app: FastAPI):
         Base.metadata.create_all(bind=engine)
         logger.info("Local SQLite database tables initialized")
 
-    # Pre-load local embedding model only if Hugging Face API mode is disabled
-    try:
-        from app.services.embedding_service import embedding_service, load_model
-        if not embedding_service.use_hf:
-            load_model()
-        else:
-            logger.info("Using Hugging Face Serverless Inference API for embeddings (Local loading skipped to save RAM)")
-    except Exception as exc:
-        logger.warning("Embedding model could not be pre-loaded: %s", exc)
 
-    # Initialize Chroma client eagerly
-    try:
-        from app.services.chroma_service import get_chroma_client
-        get_chroma_client()
-    except Exception as exc:
-        logger.warning("Chroma client could not be initialized at startup: %s", exc)
 
     yield  # App is running
 
