@@ -1,3 +1,4 @@
+import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -22,6 +23,8 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
     embedding_model: str = "BAAI/bge-small-en-v1.5"
+    use_hf_embeddings: bool = bool(os.environ.get("RENDER") or os.environ.get("HF_TOKEN"))
+    hf_token: str = ""
 
     # Chroma Cloud
     chroma_api_key: str = ""

@@ -47,10 +47,13 @@ async def lifespan(app: FastAPI):
         Base.metadata.create_all(bind=engine)
         logger.info("Local SQLite database tables initialized")
 
-    # Pre-load the embedding model so the first request isn't slow
+    # Pre-load local embedding model only if Hugging Face API mode is disabled
     try:
-        from app.services.embedding_service import load_model
-        load_model()
+        from app.services.embedding_service import embedding_service, load_model
+        if not embedding_service.use_hf:
+            load_model()
+        else:
+            logger.info("Using Hugging Face Serverless Inference API for embeddings (Local loading skipped to save RAM)")
     except Exception as exc:
         logger.warning("Embedding model could not be pre-loaded: %s", exc)
 
